@@ -24,11 +24,11 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
 
       - name: Build
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
