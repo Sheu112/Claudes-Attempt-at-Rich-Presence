@@ -219,6 +219,7 @@ dependencies {
     implementation(libs.kotlin.coroutines)
     implementation(libs.kotlin.immutable)
     implementation(libs.kotlin.datetime)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation(libs.room)
     ksp(libs.room.compiler)
