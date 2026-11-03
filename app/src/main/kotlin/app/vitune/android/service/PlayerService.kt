@@ -105,6 +105,7 @@ import app.vitune.android.utils.thumbnail
 import app.vitune.android.utils.timer
 import app.vitune.android.utils.toast
 import app.vitune.compose.preferences.SharedPreferencesProperty
+import app.vitune.android.discord.DiscordPresenceManager
 import app.vitune.core.data.enums.ExoPlayerDiskCacheSize
 import app.vitune.core.data.utils.UriCache
 import app.vitune.core.ui.utils.EqualizerIntentBundleAccessor
@@ -183,6 +184,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private lateinit var mediaSession: MediaSession
     private lateinit var cache: Cache
     private lateinit var player: ExoPlayer
+    private var discordPresence: DiscordPresenceManager? = null
 
     private val defaultActions =
         PlaybackState.ACTION_PLAY or
@@ -315,6 +317,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             .apply {
                 skipSilenceEnabled = PlayerPreferences.skipSilence
                 addListener(this@PlayerService)
+                addListener(DiscordPresenceManager(this@PlayerService, this).also { discordPresence = it })
                 addAnalyticsListener(
                     PlaybackStatsListener(
                         /* keepHistory = */
@@ -427,6 +430,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     override fun onDestroy() {
         runCatching {
             maybeSavePlayerQueue()
+            discordPresence?.let { player.removeListener(it); it.release() }
 
             player.removeListener(this)
             player.stop()
