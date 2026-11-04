@@ -3,6 +3,8 @@ package app.vitune.android.service
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -242,6 +244,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
     private var audioManager: AudioManager? = null
     private var audioDeviceCallback: AudioDeviceCallback? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var bassBoost: BassBoost? = null
@@ -304,7 +307,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         cache = createCache(this)
         player = ExoPlayer.Builder(this, createRendersFactory(), createMediaSourceFactory())
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .setAudioAttributes(
                 /* audioAttributes = */
                 AudioAttributes.Builder()
@@ -395,6 +398,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             subscribe(DiscordPreferences.enabledProperty) { maybeConfigureDiscordPresence() }
             subscribe(DiscordPreferences.tokenProperty) { maybeConfigureDiscordPresence() }
             subscribe(DiscordPreferences.applicationIdProperty) { maybeConfigureDiscordPresence() }
+            registerNetworkCallback()
 
             launch {
                 val audioManager = getSystemService<AudioManager>()
@@ -447,6 +451,10 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
             loudnessEnhancer?.release()
             preferenceUpdaterJob?.cancel()
+            networkCallback?.let { callback ->
+                runCatching { getSystemService<ConnectivityManager>()?.unregisterNetworkCallback(callback) }
+            }
+            networkCallback = null
             discordPresence.release()
 
             coroutineScope.cancel()
@@ -524,6 +532,18 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
             updateMediaSessionQueue(player.currentTimeline)
         }
+    }
+
+    /** Lets Discord Rich Presence reconnect right away when the phone gets back online. */
+    private fun registerNetworkCallback() {
+        val connectivityManager = getSystemService<ConnectivityManager>() ?: return
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                if (DiscordPreferences.enabled) discordPresence.onNetworkAvailable()
+            }
+        }
+        runCatching { connectivityManager.registerDefaultNetworkCallback(callback) }
+            .onSuccess { networkCallback = callback }
     }
 
     private fun maybeConfigureDiscordPresence() {

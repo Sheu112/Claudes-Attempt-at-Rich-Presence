@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -22,6 +23,7 @@ import app.vitune.android.LocalPlayerServiceBinder
 import app.vitune.android.R
 import app.vitune.android.preferences.DiscordPreferences
 import app.vitune.android.preferences.PlayerPreferences
+import app.vitune.android.service.DiscordPresence
 import app.vitune.android.service.PlayerService
 import app.vitune.android.ui.components.themed.SecondaryTextButton
 import app.vitune.android.ui.components.themed.TextFieldDialog
@@ -224,6 +226,23 @@ private fun DiscordSettingsGroup() = SettingsGroup(
         isChecked = DiscordPreferences.enabled,
         onCheckedChange = { DiscordPreferences.enabled = it }
     )
+
+    if (DiscordPreferences.enabled) {
+        val status by DiscordPresence.status.collectAsState()
+        SettingsEntry(
+            title = stringResource(R.string.discord_status),
+            text = stringResource(
+                when (status) {
+                    DiscordPresence.Status.Off -> R.string.discord_status_off
+                    DiscordPresence.Status.Connecting -> R.string.discord_status_connecting
+                    DiscordPresence.Status.Connected -> R.string.discord_status_connected
+                    DiscordPresence.Status.Reconnecting -> R.string.discord_status_reconnecting
+                    DiscordPresence.Status.TokenRejected -> R.string.discord_status_token_rejected
+                }
+            ),
+            onClick = { }
+        )
+    }
 
     SettingsEntry(
         title = stringResource(R.string.discord_token),
