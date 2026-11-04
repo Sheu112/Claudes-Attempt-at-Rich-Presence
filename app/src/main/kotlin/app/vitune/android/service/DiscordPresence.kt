@@ -43,7 +43,11 @@ import kotlin.time.Duration.Companion.seconds
  * Note: this uses a user account token, which Discord's Terms of Service do not allow
  * ("self-botting"). The user opts in explicitly in the settings.
  */
-class DiscordPresence(private val scope: CoroutineScope) {
+class DiscordPresence(
+    private val scope: CoroutineScope,
+    /** Looks up a song's album when the player didn't provide one. */
+    private val albumLookup: suspend (songId: String) -> String? = { null }
+) {
     /** What we want Discord to show. `null` means "show nothing". */
     data class Track(
         val id: String,
@@ -256,15 +260,20 @@ class DiscordPresence(private val scope: CoroutineScope) {
                 }
             )
 
+        // The album shows as the third line under the artist; leave it out rather than repeat the title.
+        val album = track.album?.takeIf { it.isNotBlank() }
+            ?: runCatching { albumLookup(track.id) }.getOrNull()?.takeIf { it.isNotBlank() }
+
         applicationId?.let { appId ->
             activity.put("application_id", appId)
 
             val assetKey = track.artworkUrl?.let { resolveArtwork(it, appId, token) }
             if (assetKey != null) activity.put(
                 "assets",
-                JSONObject()
-                    .put("large_image", assetKey)
-                    .put("large_text", (track.album ?: track.title).forDiscord())
+                JSONObject().apply {
+                    put("large_image", assetKey)
+                    if (album != null && album != track.title) put("large_text", album.forDiscord())
+                }
             )
         }
 

@@ -234,7 +234,9 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private var preferenceUpdaterJob: Job? = null
     private var volumeNormalizationJob: Job? = null
     private var sponsorBlockJob: Job? = null
-    private val discordPresence by lazy { DiscordPresence(coroutineScope) }
+    private val discordPresence by lazy {
+        DiscordPresence(coroutineScope) { songId -> Database.songAlbumTitle(songId) }
+    }
 
     override var isInvincibilityEnabled by mutableStateOf(false)
 

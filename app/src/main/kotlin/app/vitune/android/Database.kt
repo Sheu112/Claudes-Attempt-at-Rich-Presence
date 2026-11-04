@@ -639,6 +639,12 @@ interface DatabaseAccessor {
     @Query("SELECT albumId AS id, NULL AS name FROM SongAlbumMap WHERE songId = :songId")
     suspend fun songAlbumInfo(songId: String): Info?
 
+    @Query(
+        "SELECT Album.title FROM SongAlbumMap JOIN Album ON Album.id = SongAlbumMap.albumId " +
+            "WHERE SongAlbumMap.songId = :songId AND Album.title IS NOT NULL LIMIT 1"
+    )
+    suspend fun songAlbumTitle(songId: String): String?
+
     @Query("SELECT id, name FROM Artist LEFT JOIN SongArtistMap ON id = artistId WHERE songId = :songId")
     suspend fun songArtistInfo(songId: String): List<Info>
 
