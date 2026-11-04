@@ -290,6 +290,15 @@
     <string name="bass_boost_level">Bass boost level</string>
     <string name="bass_boost_level_description">Level (0–1000) of boosting low frequencies; use at own risk!</string>
     <string name="sponsor_block">Sponsorblock</string>
+    <string name="discord">Discord</string>
+    <string name="discord_presence">Discord Rich Presence</string>
+    <string name="discord_presence_description">Show the song you\'re listening to on your Discord profile</string>
+    <string name="discord_token">Discord token</string>
+    <string name="discord_token_set">Set (tap to change)</string>
+    <string name="discord_token_not_set">Not set</string>
+    <string name="discord_application_id">Discord application ID</string>
+    <string name="discord_application_id_description">Optional, needed to show album art. Create an application at discord.com/developers and paste its ID</string>
+    <string name="discord_presence_warning">This logs in with your Discord account token, which is against Discord\'s Terms of Service and could get your account banned. Never share your token with anyone.</string>
     <string name="sponsor_block_description">Blocks sponsored/offtopic content using data from the Sponsorblock API</string>
     <string name="reverb">Reverb</string>
     <string name="audio_focus">Audio focus</string>

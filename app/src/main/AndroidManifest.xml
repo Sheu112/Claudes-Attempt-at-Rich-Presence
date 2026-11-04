@@ -172,10 +172,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".discord.DiscordLoginActivity"
-            android:exported="false" />
-
         <service
             android:name=".service.PlayerService"
             android:exported="false"

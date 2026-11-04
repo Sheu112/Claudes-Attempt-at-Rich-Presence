@@ -38,9 +38,6 @@ import app.vitune.android.DatabaseDependency
 import app.vitune.android.Dependencies
 import app.vitune.android.LocalPlayerServiceBinder
 import app.vitune.android.R
-import app.vitune.android.discord.DiscordLoginActivity
-import app.vitune.android.discord.DiscordPrefs
-import app.vitune.android.discord.DiscordPreferences
 import app.vitune.android.preferences.AppearancePreferences
 import app.vitune.android.preferences.DataPreferences
 import app.vitune.android.preferences.PlayerPreferences
@@ -108,12 +105,6 @@ fun OtherSettings() {
         onResult = { isIgnoringBatteryOptimizations = context.isIgnoringBatteryOptimizations }
     )
 
-    var hasDiscordToken by remember { mutableStateOf(DiscordPrefs.token(context) != null) }
-    val discordLogin = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = { hasDiscordToken = DiscordPrefs.token(context) != null }
-    )
-
     val queriesCount by remember {
         Database.queriesCount().distinctUntilChanged()
     }.collectAsState(initial = 0)
@@ -122,25 +113,6 @@ fun OtherSettings() {
         title = stringResource(R.string.other),
         scrollState = scrollState
     ) {
-        SettingsGroup(title = "Discord") {
-            SwitchSettingsEntry(
-                title = "Rich Presence",
-                text = "Show what you're listening to on your Discord profile",
-                isChecked = DiscordPreferences.enabled,
-                onCheckedChange = { DiscordPreferences.enabled = it }
-            )
-            SettingsEntry(
-                title = if (hasDiscordToken) "Log out of Discord" else "Log in to Discord",
-                text = if (hasDiscordToken) "Remove the saved Discord token" else "Required for Rich Presence",
-                onClick = {
-                    if (hasDiscordToken) {
-                        DiscordPrefs.logout(context)
-                        hasDiscordToken = false
-                    } else discordLogin.launch(Intent(context, DiscordLoginActivity::class.java))
-                }
-            )
-            SettingsDescription(text = "Uses your Discord user token, which Discord's ToS doesn't allow. Use at your own risk.")
-        }
         SettingsGroup(title = stringResource(R.string.android_auto)) {
             SwitchSettingsEntry(
                 title = stringResource(R.string.android_auto),

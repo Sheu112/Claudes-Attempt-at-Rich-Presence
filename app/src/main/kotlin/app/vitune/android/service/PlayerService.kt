@@ -73,6 +73,7 @@ import app.vitune.android.models.Song
 import app.vitune.android.models.SongWithContentLength
 import app.vitune.android.preferences.AppearancePreferences
 import app.vitune.android.preferences.DataPreferences
+import app.vitune.android.preferences.DiscordPreferences
 import app.vitune.android.preferences.PlayerPreferences
 import app.vitune.android.query
 import app.vitune.android.transaction
@@ -105,7 +106,6 @@ import app.vitune.android.utils.thumbnail
 import app.vitune.android.utils.timer
 import app.vitune.android.utils.toast
 import app.vitune.compose.preferences.SharedPreferencesProperty
-import app.vitune.android.discord.DiscordPresenceManager
 import app.vitune.core.data.enums.ExoPlayerDiskCacheSize
 import app.vitune.core.data.utils.UriCache
 import app.vitune.core.ui.utils.EqualizerIntentBundleAccessor
@@ -184,7 +184,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private lateinit var mediaSession: MediaSession
     private lateinit var cache: Cache
     private lateinit var player: ExoPlayer
-    private var discordPresence: DiscordPresenceManager? = null
 
     private val defaultActions =
         PlaybackState.ACTION_PLAY or
@@ -235,6 +234,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     private var preferenceUpdaterJob: Job? = null
     private var volumeNormalizationJob: Job? = null
     private var sponsorBlockJob: Job? = null
+    private val discordPresence by lazy { DiscordPresence(coroutineScope) }
 
     override var isInvincibilityEnabled by mutableStateOf(false)
 
@@ -317,7 +317,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             .apply {
                 skipSilenceEnabled = PlayerPreferences.skipSilence
                 addListener(this@PlayerService)
-                addListener(DiscordPresenceManager(this@PlayerService, this).also { discordPresence = it })
                 addAnalyticsListener(
                     PlaybackStatsListener(
                         /* keepHistory = */
@@ -391,6 +390,9 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             subscribe(PlayerPreferences.volumeNormalizationBaseGainProperty) { maybeNormalizeVolume() }
             subscribe(PlayerPreferences.volumeNormalizationProperty) { maybeNormalizeVolume() }
             subscribe(PlayerPreferences.sponsorBlockEnabledProperty) { maybeSponsorBlock() }
+            subscribe(DiscordPreferences.enabledProperty) { maybeConfigureDiscordPresence() }
+            subscribe(DiscordPreferences.tokenProperty) { maybeConfigureDiscordPresence() }
+            subscribe(DiscordPreferences.applicationIdProperty) { maybeConfigureDiscordPresence() }
 
             launch {
                 val audioManager = getSystemService<AudioManager>()
@@ -430,7 +432,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     override fun onDestroy() {
         runCatching {
             maybeSavePlayerQueue()
-            discordPresence?.let { player.removeListener(it); it.release() }
 
             player.removeListener(this)
             player.stop()
@@ -444,6 +445,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
             loudnessEnhancer?.release()
             preferenceUpdaterJob?.cancel()
+            discordPresence.release()
 
             coroutineScope.cancel()
             glyphInterface.close()
@@ -520,6 +522,36 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
             updateMediaSessionQueue(player.currentTimeline)
         }
+    }
+
+    private fun maybeConfigureDiscordPresence() {
+        val enabled = DiscordPreferences.enabled && DiscordPreferences.token.isNotBlank()
+        discordPresence.configure(
+            token = if (enabled) DiscordPreferences.token else null,
+            applicationId = DiscordPreferences.applicationId
+        )
+        if (enabled) updateDiscordPresence()
+    }
+
+    private fun updateDiscordPresence() {
+        if (!DiscordPreferences.enabled) return
+
+        val mediaItem = player.currentMediaItem
+        val title = player.mediaMetadata.title?.toString()
+
+        discordPresence.update(
+            if (mediaItem == null || title.isNullOrBlank() || !player.isPlaying) null
+            else DiscordPresence.Track(
+                id = mediaItem.mediaId,
+                title = title,
+                artist = player.mediaMetadata.artist?.toString(),
+                album = player.mediaMetadata.albumTitle?.toString(),
+                artworkUrl = mediaItem.mediaMetadata.artworkUri?.toString(),
+                positionMs = player.currentPosition,
+                durationMs = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L,
+                isLocal = mediaItem.isLocal
+            )
+        )
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -951,6 +983,8 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         ) {
             return
         }
+
+        updateDiscordPresence()
 
         val notification = notification()
 

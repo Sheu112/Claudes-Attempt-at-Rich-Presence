@@ -20,9 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import app.vitune.android.LocalPlayerServiceBinder
 import app.vitune.android.R
+import app.vitune.android.preferences.DiscordPreferences
 import app.vitune.android.preferences.PlayerPreferences
 import app.vitune.android.service.PlayerService
 import app.vitune.android.ui.components.themed.SecondaryTextButton
+import app.vitune.android.ui.components.themed.TextFieldDialog
 import app.vitune.android.ui.screens.Route
 import app.vitune.android.utils.rememberEqualizerLauncher
 import app.vitune.core.ui.utils.isAtLeastAndroid6
@@ -188,7 +190,57 @@ fun PlayerSettings() = with(PlayerPreferences) {
                 onClick = launchEqualizer
             )
         }
+        DiscordSettingsGroup()
     }
+}
+
+@Composable
+private fun DiscordSettingsGroup() = SettingsGroup(
+    title = stringResource(R.string.discord),
+    description = stringResource(R.string.discord_presence_warning),
+    important = true
+) {
+    var isEditingToken by rememberSaveable { mutableStateOf(false) }
+    var isEditingApplicationId by rememberSaveable { mutableStateOf(false) }
+
+    if (isEditingToken) TextFieldDialog(
+        hintText = stringResource(R.string.discord_token),
+        onDismiss = { isEditingToken = false },
+        onAccept = { DiscordPreferences.token = it.trim() },
+        isTextInputValid = { true }
+    )
+
+    if (isEditingApplicationId) TextFieldDialog(
+        hintText = stringResource(R.string.discord_application_id),
+        initialTextInput = DiscordPreferences.applicationId,
+        onDismiss = { isEditingApplicationId = false },
+        onAccept = { DiscordPreferences.applicationId = it.trim() },
+        isTextInputValid = { it.isBlank() || it.trim().all(Char::isDigit) }
+    )
+
+    SwitchSettingsEntry(
+        title = stringResource(R.string.discord_presence),
+        text = stringResource(R.string.discord_presence_description),
+        isChecked = DiscordPreferences.enabled,
+        onCheckedChange = { DiscordPreferences.enabled = it }
+    )
+
+    SettingsEntry(
+        title = stringResource(R.string.discord_token),
+        text = stringResource(
+            if (DiscordPreferences.token.isBlank()) R.string.discord_token_not_set
+            else R.string.discord_token_set
+        ),
+        onClick = { isEditingToken = true }
+    )
+
+    SettingsEntry(
+        title = stringResource(R.string.discord_application_id),
+        text = DiscordPreferences.applicationId.ifBlank {
+            stringResource(R.string.discord_application_id_description)
+        },
+        onClick = { isEditingApplicationId = true }
+    )
 }
 
 @Composable
