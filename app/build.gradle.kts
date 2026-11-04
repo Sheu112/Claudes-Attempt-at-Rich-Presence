@@ -72,14 +72,14 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            manifestPlaceholders["appName"] = "ViTune Debug"
+            manifestPlaceholders["appName"] = "Vertune"
         }
 
         release {
             versionNameSuffix = "-RELEASE"
             isMinifyEnabled = true
             isShrinkResources = true
-            manifestPlaceholders["appName"] = "ViTune"
+            manifestPlaceholders["appName"] = "Vertune"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -92,7 +92,7 @@ android {
 
             applicationIdSuffix = ".nightly"
             versionNameSuffix = "-NIGHTLY"
-            manifestPlaceholders["appName"] = "ViTune Nightly"
+            manifestPlaceholders["appName"] = "Vertune Nightly"
             signingConfig = signingConfigs.findByName("ci")
         }
     }
