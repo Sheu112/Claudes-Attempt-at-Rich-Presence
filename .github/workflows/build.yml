@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -25,12 +26,13 @@ jobs:
       - name: Accept Android licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
+      # The bundled gradle-wrapper.jar is not a working wrapper, so use a real Gradle install
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
 
       - name: Build debug APK
-        run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
