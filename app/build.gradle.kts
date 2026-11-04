@@ -50,6 +50,15 @@ android {
     }
 
     signingConfigs {
+        // Fixed debug key committed to the repo, so every CI build can be installed over the last
+        // one without uninstalling (a fresh runner would otherwise generate a new random key).
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+
         create("ci") {
             storeFile = System.getenv("ANDROID_NIGHTLY_KEYSTORE")?.let { file(it) }
             storePassword = System.getenv("ANDROID_NIGHTLY_KEYSTORE_PASSWORD")
@@ -60,6 +69,7 @@ android {
 
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
             manifestPlaceholders["appName"] = "ViTune Debug"
